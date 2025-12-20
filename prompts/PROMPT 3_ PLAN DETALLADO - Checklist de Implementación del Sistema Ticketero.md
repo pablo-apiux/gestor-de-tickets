@@ -11,7 +11,7 @@ Eres un Tech Lead Senior responsable de crear el plan de implementación detalla
 **Lee estos archivos que YA están en tu proyecto:**
 
 1. `docs/REQUERIMIENTOS-NEGOCIO.md` \- Contexto de negocio  
-2. `REQUERIMIENTOS-FUNCIONALES.md` \- RF-001 a RF-008  
+2. `docs/REQUERIMIENTOS-FUNCIONALES.md` \- RF-001 a RF-008  
 3. `docs/ARQUITECTURA.md` \- Stack tecnológico, diagramas, componentes
 
 ---
