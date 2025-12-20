@@ -2,7 +2,6 @@
 
 **Proyecto:** Sistema de Gestión de Tickets con Notificaciones en Tiempo Real  
 **Stack Tecnológico:** Java 21 + Spring Boot 3.2 + PostgreSQL  
-**Enfoque:** Pragmático, sin sobre-ingeniería  
 **Fecha:** Diciembre 2025  
 **Arquitecto:** Arquitecto de Software Senior
 
