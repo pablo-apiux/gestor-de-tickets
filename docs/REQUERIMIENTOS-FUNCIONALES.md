@@ -4,7 +4,7 @@
 **Cliente:** Institución Financiera  
 **Versión:** 1.0  
 **Fecha:** Diciembre 2025  
-**Analista:** Analista de Negocio Senior
+**Autor:** Analista de Negocio Senior
 
 ---
 

@@ -1,9 +1,10 @@
 # Arquitectura de Software - Sistema Ticketero Digital
 
 **Proyecto:** Sistema de Gestión de Tickets con Notificaciones en Tiempo Real  
+**Cliente:** Institución Financiera  
 **Versión:** 1.0  
 **Fecha:** Diciembre 2025  
-**Arquitecto:** Arquitecto de Software Senior
+**Autor:** Arquitecto de Software Senior
 
 ---
 
