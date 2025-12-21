@@ -13,17 +13,37 @@ public enum TicketStatus {
     CANCELADO,      // Cancelado por cliente o sistema
     NO_ATENDIDO;    // Cliente no se presentó
 
+    /** Estados considerados "activos" (cliente aún no ha sido atendido completamente) */
+    private static final List<TicketStatus> ACTIVE_STATUSES = List.of(EN_ESPERA, PROXIMO, ATENDIENDO);
+    
+    /** Estados finales (no requieren más procesamiento) */
+    private static final List<TicketStatus> FINAL_STATUSES = List.of(COMPLETADO, CANCELADO, NO_ATENDIDO);
+
     /**
      * Estados considerados "activos" (cliente aún no ha sido atendido completamente)
      */
     public static List<TicketStatus> getActiveStatuses() {
-        return List.of(EN_ESPERA, PROXIMO, ATENDIENDO);
+        return ACTIVE_STATUSES;
+    }
+    
+    /**
+     * Estados finales que no requieren más procesamiento
+     */
+    public static List<TicketStatus> getFinalStatuses() {
+        return FINAL_STATUSES;
     }
 
     /**
      * Verifica si este estado es considerado activo
      */
     public boolean isActive() {
-        return getActiveStatuses().contains(this);
+        return ACTIVE_STATUSES.contains(this);
+    }
+    
+    /**
+     * Verifica si este estado es final
+     */
+    public boolean isFinal() {
+        return FINAL_STATUSES.contains(this);
     }
 }

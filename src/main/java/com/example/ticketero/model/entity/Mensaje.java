@@ -47,5 +47,14 @@ public class Mensaje {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (fechaProgramada == null) {
+            fechaProgramada = LocalDateTime.now();
+        }
+        if (estadoEnvio == null) {
+            estadoEnvio = "PENDIENTE";
+        }
+        if (intentos == null) {
+            intentos = 0;
+        }
     }
 }

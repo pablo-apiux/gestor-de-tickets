@@ -56,4 +56,22 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         @Param("queueType") QueueType queueType,
         @Param("statuses") List<TicketStatus> statuses
     );
+    
+    // Métodos adicionales para dashboard
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.createdAt >= :fecha")
+    Long countByCreatedAtAfter(@Param("fecha") LocalDateTime fecha);
+    
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = :status AND t.createdAt >= :fecha")
+    Long countByStatusAndCreatedAtAfter(
+        @Param("status") TicketStatus status,
+        @Param("fecha") LocalDateTime fecha
+    );
+    
+    @Query(value = "SELECT COUNT(t) FROM Ticket t WHERE t.queueType = :queueType AND t.status = :status AND t.createdAt >= :fecha", 
+           nativeQuery = false)
+    Long countByQueueTypeAndStatusAndCreatedAtAfter(
+        @Param("queueType") QueueType queueType,
+        @Param("status") TicketStatus status,
+        @Param("fecha") LocalDateTime fecha
+    );
 }

@@ -25,7 +25,13 @@ public class TelegramService {
     @Value("${telegram.api-url}")
     private String apiUrl;
 
+    @SuppressWarnings("unchecked")
     public String enviarMensaje(String chatId, String texto) {
+        if (botToken == null || botToken.isEmpty()) {
+            log.warn("Token de Telegram no configurado, simulando envío de mensaje");
+            return "simulated_message_id_" + System.currentTimeMillis();
+        }
+        
         String url = apiUrl + botToken + "/sendMessage";
         
         HttpHeaders headers = new HttpHeaders();
@@ -43,8 +49,11 @@ public class TelegramService {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> result = (Map<String, Object>) response.getBody().get("result");
-                return result.get("message_id").toString();
+                Object resultObj = response.getBody().get("result");
+                if (resultObj instanceof Map<?, ?> result) {
+                    Object messageIdObj = result.get("message_id");
+                    return messageIdObj != null ? messageIdObj.toString() : "unknown_message_id";
+                }
             }
             
             throw new RuntimeException("Error enviando mensaje a Telegram");

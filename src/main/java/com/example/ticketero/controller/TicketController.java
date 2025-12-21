@@ -14,15 +14,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080}", maxAge = 3600)
 public class TicketController {
 
     private final TicketService ticketService;
 
     @PostMapping
     public ResponseEntity<TicketResponse> crearTicket(@Valid @RequestBody TicketCreateRequest request) {
-        TicketResponse response = ticketService.crearTicket(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            TicketResponse response = ticketService.crearTicket(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping
@@ -33,20 +39,38 @@ public class TicketController {
 
     @GetMapping("/{numero}")
     public ResponseEntity<TicketResponse> obtenerTicketPorNumero(@PathVariable String numero) {
-        return ticketService.obtenerTicketPorNumero(numero)
-            .map(ticket -> ResponseEntity.ok(ticket))
-            .orElse(ResponseEntity.notFound().build());
+        try {
+            return ticketService.obtenerTicketPorNumero(numero)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{ticketId}/llamar/{advisorId}")
     public ResponseEntity<Void> llamarTicket(@PathVariable Long ticketId, @PathVariable Long advisorId) {
-        ticketService.llamarTicket(ticketId, advisorId);
-        return ResponseEntity.ok().build();
+        if (ticketId <= 0 || advisorId <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            ticketService.llamarTicket(ticketId, advisorId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{ticketId}/finalizar")
     public ResponseEntity<Void> finalizarTicket(@PathVariable Long ticketId) {
-        ticketService.finalizarTicket(ticketId);
-        return ResponseEntity.ok().build();
+        if (ticketId <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            ticketService.finalizarTicket(ticketId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

@@ -32,16 +32,31 @@ public class TicketService {
     private final TelegramService telegramService;
 
     public TicketResponse crearTicket(TicketCreateRequest request) {
+        // Validaciones de seguridad
+        if (request == null) {
+            throw new IllegalArgumentException("Request no puede ser null");
+        }
+        
         QueueType queueType = request.queueType();
+        
+        // Validar que no existe ticket activo para el mismo nationalId
+        List<TicketStatus> estadosActivos = TicketStatus.getActiveStatuses();
+        Optional<Ticket> ticketExistente = ticketRepository.findByNationalIdAndStatusIn(
+            request.nationalId(), estadosActivos);
+        
+        if (ticketExistente.isPresent()) {
+            throw new IllegalStateException("Ya existe un ticket activo para este RUT/ID: " + 
+                ticketExistente.get().getNumero());
+        }
         
         // Obtener posición en cola
         Long posicion = ticketRepository.countByQueueTypeAndStatus(queueType, TicketStatus.EN_ESPERA) + 1;
         
         // Crear ticket
         Ticket ticket = Ticket.builder()
-            .nationalId(request.nationalId())
-            .telefono(request.telefono())
-            .branchOffice(request.branchOffice())
+            .nationalId(request.nationalId().trim())
+            .telefono(request.telefono() != null ? request.telefono().trim() : null)
+            .branchOffice(request.branchOffice().trim())
             .queueType(queueType)
             .status(TicketStatus.EN_ESPERA)
             .positionInQueue(posicion.intValue())
@@ -50,57 +65,28 @@ public class TicketService {
         
         ticket = ticketRepository.save(ticket);
         
-        // Enviar notificación Telegram
-        try {
-            String texto = telegramService.obtenerTextoMensaje(
-                "totem_ticket_creado",
-                ticket.getNumero(),
-                posicion.intValue(),
-                ticket.getEstimatedWaitMinutes(),
-                null,
-                null
-            );
-            
-            String messageId = telegramService.enviarMensaje(request.telefono(), texto);
-            
-            // Guardar mensaje
-            Mensaje mensaje = new Mensaje();
-            mensaje.setTicket(ticket);
-            mensaje.setTelegramMessageId(messageId);
-            mensaje.setPlantilla("totem_ticket_creado");
-            mensajeRepository.save(mensaje);
-            
-        } catch (Exception e) {
-            log.error("Error enviando notificación para ticket {}: {}", ticket.getNumero(), e.getMessage());
+        // Enviar notificación Telegram solo si hay teléfono
+        if (ticket.getTelefono() != null && !ticket.getTelefono().isEmpty()) {
+            enviarNotificacionCreacion(ticket, posicion.intValue());
         }
         
-        return new TicketResponse(
-            ticket.getCodigoReferencia(),
-            ticket.getNumero(),
-            ticket.getNationalId(),
-            ticket.getTelefono(),
-            ticket.getBranchOffice(),
-            ticket.getQueueType(),
-            ticket.getStatus(),
-            ticket.getPositionInQueue(),
-            ticket.getEstimatedWaitMinutes(),
-            null,
-            null,
-            ticket.getCreatedAt(),
-            ticket.getUpdatedAt()
-        );
+        return convertirAResponse(ticket);
     }
 
     public void llamarTicket(Long ticketId, Long advisorId) {
+        if (ticketId == null || advisorId == null) {
+            throw new IllegalArgumentException("IDs no pueden ser null");
+        }
+        
         Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
+            .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado con ID: " + ticketId));
         
         if (ticket.getStatus() != TicketStatus.EN_ESPERA) {
-            throw new RuntimeException("El ticket no está en espera");
+            throw new IllegalStateException("El ticket no está en espera. Estado actual: " + ticket.getStatus());
         }
         
         Advisor advisor = advisorRepository.findById(advisorId)
-            .orElseThrow(() -> new RuntimeException("Asesor no encontrado"));
+            .orElseThrow(() -> new IllegalArgumentException("Asesor no encontrado con ID: " + advisorId));
         
         ticket.setStatus(TicketStatus.ATENDIENDO);
         ticket.setAssignedAdvisor(advisor);
@@ -112,39 +98,27 @@ public class TicketService {
         actualizarPosicionesEnCola(ticket.getQueueType());
         
         // Enviar notificación
-        try {
-            String texto = telegramService.obtenerTextoMensaje(
-                "totem_es_tu_turno",
-                ticket.getNumero(),
-                null,
-                null,
-                advisor.getName(),
-                advisor.getModuleNumber()
-            );
-            
-            String messageId = telegramService.enviarMensaje(ticket.getTelefono(), texto);
-            
-            Mensaje mensaje = new Mensaje();
-            mensaje.setTicket(ticket);
-            mensaje.setTelegramMessageId(messageId);
-            mensaje.setPlantilla("totem_es_tu_turno");
-            mensajeRepository.save(mensaje);
-            
-        } catch (Exception e) {
-            log.error("Error enviando notificación de llamada para ticket {}: {}", ticket.getNumero(), e.getMessage());
+        if (ticket.getTelefono() != null && !ticket.getTelefono().isEmpty()) {
+            enviarNotificacionLlamada(ticket, advisor);
         }
     }
 
     public void finalizarTicket(Long ticketId) {
+        if (ticketId == null) {
+            throw new IllegalArgumentException("ID del ticket no puede ser null");
+        }
+        
         Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
+            .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado con ID: " + ticketId));
         
         if (ticket.getStatus() != TicketStatus.ATENDIENDO) {
-            throw new RuntimeException("El ticket no está en atención");
+            throw new IllegalStateException("The ticket is not being attended. Current status: " + ticket.getStatus());
         }
         
         ticket.setStatus(TicketStatus.COMPLETADO);
         ticketRepository.save(ticket);
+        
+        log.info("Ticket {} finalizado exitosamente", ticket.getNumero());
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +131,11 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Optional<TicketResponse> obtenerTicketPorNumero(String numeroTicket) {
-        return ticketRepository.findByNumero(numeroTicket)
+        if (numeroTicket == null || numeroTicket.trim().isEmpty()) {
+            throw new IllegalArgumentException("Número de ticket no puede ser null o vacío");
+        }
+        
+        return ticketRepository.findByNumero(numeroTicket.trim().toUpperCase())
             .map(this::convertirAResponse);
     }
 
@@ -190,5 +168,55 @@ public class TicketService {
             ticket.getCreatedAt(),
             ticket.getUpdatedAt()
         );
+    }
+    
+    private void enviarNotificacionCreacion(Ticket ticket, Integer posicion) {
+        try {
+            String texto = telegramService.obtenerTextoMensaje(
+                "totem_ticket_creado",
+                ticket.getNumero(),
+                posicion,
+                ticket.getEstimatedWaitMinutes(),
+                null,
+                null
+            );
+            
+            String messageId = telegramService.enviarMensaje(ticket.getTelefono(), texto);
+            
+            Mensaje mensaje = Mensaje.builder()
+                .ticket(ticket)
+                .telegramMessageId(messageId)
+                .plantilla("totem_ticket_creado")
+                .build();
+            mensajeRepository.save(mensaje);
+            
+        } catch (Exception e) {
+            log.error("Error enviando notificación para ticket {}: {}", ticket.getNumero(), e.getMessage());
+        }
+    }
+    
+    private void enviarNotificacionLlamada(Ticket ticket, Advisor advisor) {
+        try {
+            String texto = telegramService.obtenerTextoMensaje(
+                "totem_es_tu_turno",
+                ticket.getNumero(),
+                null,
+                null,
+                advisor.getName(),
+                advisor.getModuleNumber()
+            );
+            
+            String messageId = telegramService.enviarMensaje(ticket.getTelefono(), texto);
+            
+            Mensaje mensaje = Mensaje.builder()
+                .ticket(ticket)
+                .telegramMessageId(messageId)
+                .plantilla("totem_es_tu_turno")
+                .build();
+            mensajeRepository.save(mensaje);
+            
+        } catch (Exception e) {
+            log.error("Error enviando notificación de llamada para ticket {}: {}", ticket.getNumero(), e.getMessage());
+        }
     }
 }
