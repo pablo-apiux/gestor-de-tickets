@@ -13,9 +13,9 @@ Eres un Desarrollador Senior Full-Stack con expertise en Java 21 y Spring Boot. 
 **Lee estos archivos que YA están en tu proyecto:**
 
 1. `docs/REQUERIMIENTOS-NEGOCIO.md` \- Contexto de negocio  
-2. `REQUERIMIENTOS-FUNCIONALES.md` \- RF-001 a RF-008 con criterios de aceptación  
+2. `docs/REQUERIMIENTOS-FUNCIONALES.md` \- RF-001 a RF-008 con criterios de aceptación  
 3. `docs/ARQUITECTURA.md` \- Stack tecnológico, diagramas, componentes, ADRs  
-4. `PLAN-IMPLEMENTACION.md` \- Estructura de proyecto, migraciones, fases
+4. `docs/PLAN-IMPLEMENTACION.md` \- Estructura de proyecto, migraciones, fases
 
 **CRÍTICO:** Referencia el código existente en el proyecto GitHub como "ground truth" para patrones y estilo de código.
 
