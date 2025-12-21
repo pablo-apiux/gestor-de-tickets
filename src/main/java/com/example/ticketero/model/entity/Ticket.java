@@ -65,6 +65,9 @@ public class Ticket {
     @PrePersist
     protected void onCreate() {
         codigoReferencia = UUID.randomUUID();
+        if (numero == null && queueType != null && positionInQueue != null) {
+            numero = String.format("%c%03d", queueType.getPrefix(), positionInQueue);
+        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
