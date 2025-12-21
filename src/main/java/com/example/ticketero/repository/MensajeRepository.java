@@ -27,8 +27,11 @@ public interface MensajeRepository extends JpaRepository<Mensaje, Long> {
         @Param("maxIntentos") Integer maxIntentos
     );
 
-    @Query("SELECT COUNT(m) FROM Mensaje m WHERE m.estadoEnvio = :estado")
-    Long countByEstadoEnvio(@Param("estado") String estado);
+    @Query("SELECT m FROM Mensaje m WHERE m.estadoEnvio = :estado ORDER BY m.fechaProgramada ASC")
+    List<Mensaje> findByEstadoEnvio(@Param("estado") String estado);
+
+    @Query("SELECT COUNT(m) > 0 FROM Mensaje m WHERE m.ticket = :ticket AND m.plantilla = :plantilla")
+    boolean existsByTicketAndPlantilla(@Param("ticket") com.example.ticketero.model.entity.Ticket ticket, @Param("plantilla") String plantilla);
 
     @Query("SELECT m FROM Mensaje m WHERE m.ticket.numero = :numeroTicket ORDER BY m.fechaProgramada ASC")
     List<Mensaje> findByTicketNumeroOrderByFechaProgramadaAsc(@Param("numeroTicket") String numeroTicket);
