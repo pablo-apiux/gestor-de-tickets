@@ -74,4 +74,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         @Param("status") TicketStatus status,
         @Param("fecha") LocalDateTime fecha
     );
+
+    // Métodos para Recovery Service
+    @Query("SELECT t FROM Ticket t WHERE t.assignedAdvisor.id = :advisorId AND t.status IN ('ATENDIENDO', 'EN_ESPERA')")
+    Optional<Ticket> findCurrentTicketForAdvisor(@Param("advisorId") Long advisorId);
 }

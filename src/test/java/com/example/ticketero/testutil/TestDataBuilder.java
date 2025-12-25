@@ -105,4 +105,22 @@ public class TestDataBuilder {
             .maxRetries(5)
             .createdAt(LocalDateTime.now());
     }
+
+    // ============================================================
+    // RECOVERY EVENTS
+    // ============================================================
+    
+    public static RecoveryEvent.RecoveryEventBuilder recoveryEventDeadWorker() {
+        return RecoveryEvent.builder()
+            .id(1L)
+            .recoveryType("DEAD_WORKER")
+            .advisorId(1L)
+            .ticketId(1L)
+            .oldAdvisorStatus("BUSY")
+            .newAdvisorStatus("AVAILABLE")
+            .oldTicketStatus("ATENDIENDO")
+            .newTicketStatus("EN_ESPERA")
+            .reason("Worker recovery - timeout or manual intervention")
+            .createdAt(LocalDateTime.now());
+    }
 }
