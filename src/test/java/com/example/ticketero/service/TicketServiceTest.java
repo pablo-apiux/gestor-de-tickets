@@ -228,6 +228,107 @@ class TicketServiceTest {
     }
 
     // ============================================================
+    // FINALIZAR TICKET
+    // ============================================================
+    
+    @Nested
+    @DisplayName("finalizarTicket()")
+    class FinalizarTicket {
+
+        @Test
+        @DisplayName("con ticket atendiendo → debe finalizar correctamente")
+        void finalizarTicket_conTicketAtendiendo_debeFinalizarCorrectamente() {
+            // Given
+            Ticket ticket = ticketAttending().build();
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // When
+            ticketService.finalizarTicket(1L);
+
+            // Then
+            assertThat(ticket.getStatus()).isEqualTo(TicketStatus.COMPLETADO);
+            verify(ticketRepository).save(ticket);
+        }
+
+        @Test
+        @DisplayName("con ticket no atendiendo → debe lanzar IllegalStateException")
+        void finalizarTicket_ticketNoAtendiendo_debeLanzarExcepcion() {
+            // Given
+            Ticket ticket = ticketWaiting().build();
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // When + Then
+            assertThatThrownBy(() -> ticketService.finalizarTicket(1L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not being attended");
+        }
+
+        @Test
+        @DisplayName("con ID null → debe lanzar IllegalArgumentException")
+        void finalizarTicket_conIdNull_debeLanzarExcepcion() {
+            // When + Then
+            assertThatThrownBy(() -> ticketService.finalizarTicket(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ID del ticket no puede ser null");
+        }
+
+        @Test
+        @DisplayName("con ticket inexistente → debe lanzar IllegalArgumentException")
+        void finalizarTicket_conTicketInexistente_debeLanzarExcepcion() {
+            // Given
+            when(ticketRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // When + Then
+            assertThatThrownBy(() -> ticketService.finalizarTicket(999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ticket no encontrado con ID: 999");
+        }
+    }
+
+    // ============================================================
+    // OBTENER TICKETS ACTIVOS
+    // ============================================================
+    
+    @Nested
+    @DisplayName("obtenerTicketsActivos()")
+    class ObtenerTicketsActivos {
+
+        @Test
+        @DisplayName("debe retornar lista de tickets en espera")
+        void obtenerTicketsActivos_debeRetornarListaTicketsEnEspera() {
+            // Given
+            List<Ticket> tickets = List.of(
+                ticketWaiting().numero("C001").build(),
+                ticketWaiting().numero("C002").build()
+            );
+            when(ticketRepository.findByStatusOrderByCreatedAtAsc(TicketStatus.EN_ESPERA))
+                .thenReturn(tickets);
+
+            // When
+            List<TicketResponse> responses = ticketService.obtenerTicketsActivos();
+
+            // Then
+            assertThat(responses).hasSize(2);
+            assertThat(responses.get(0).numero()).isEqualTo("C001");
+            assertThat(responses.get(1).numero()).isEqualTo("C002");
+        }
+
+        @Test
+        @DisplayName("sin tickets activos → debe retornar lista vacía")
+        void obtenerTicketsActivos_sinTicketsActivos_debeRetornarListaVacia() {
+            // Given
+            when(ticketRepository.findByStatusOrderByCreatedAtAsc(TicketStatus.EN_ESPERA))
+                .thenReturn(List.of());
+
+            // When
+            List<TicketResponse> responses = ticketService.obtenerTicketsActivos();
+
+            // Then
+            assertThat(responses).isEmpty();
+        }
+    }
+
+    // ============================================================
     // OBTENER TICKET
     // ============================================================
     
@@ -270,6 +371,29 @@ class TicketServiceTest {
             assertThatThrownBy(() -> ticketService.obtenerTicketPorNumero(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no puede ser null o vacío");
+        }
+
+        @Test
+        @DisplayName("con número vacío → debe lanzar IllegalArgumentException")
+        void obtenerTicket_conNumeroVacio_debeLanzarExcepcion() {
+            // When + Then
+            assertThatThrownBy(() -> ticketService.obtenerTicketPorNumero(""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no puede ser null o vacío");
+        }
+
+        @Test
+        @DisplayName("debe normalizar número de ticket")
+        void obtenerTicket_debeNormalizarNumeroTicket() {
+            // Given
+            Ticket ticket = ticketWaiting().numero("C001").build();
+            when(ticketRepository.findByNumero("C001")).thenReturn(Optional.of(ticket));
+
+            // When
+            ticketService.obtenerTicketPorNumero(" c001 ");
+
+            // Then
+            verify(ticketRepository).findByNumero("C001");
         }
     }
 }

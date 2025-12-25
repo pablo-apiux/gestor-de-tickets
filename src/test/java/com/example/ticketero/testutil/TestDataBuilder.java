@@ -39,6 +39,10 @@ public class TestDataBuilder {
             .updatedAt(LocalDateTime.now().minusMinutes(1));
     }
     
+    public static Ticket.TicketBuilder ticketAttending() {
+        return ticketInProgress();
+    }
+    
     public static Ticket.TicketBuilder ticketCompleted() {
         return ticketInProgress()
             .status(TicketStatus.COMPLETADO)
