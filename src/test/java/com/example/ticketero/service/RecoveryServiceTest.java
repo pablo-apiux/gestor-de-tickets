@@ -208,4 +208,118 @@ class RecoveryServiceTest {
                 .hasMessageContaining("999");
         }
     }
+
+    // ============================================================
+    // CASOS EDGE ADICIONALES PARA COBERTURA COMPLETA
+    // ============================================================
+    
+    @Nested
+    @DisplayName("Casos Edge para Cobertura Completa")
+    class CasosEdge {
+
+        @Test
+        @DisplayName("error al reencolar ticket → debe continuar con recovery")
+        void detectar_errorAlReencolar_debeContinuar() {
+            // Given
+            ReflectionTestUtils.setField(recoveryService, "heartbeatTimeoutSeconds", 60);
+            ReflectionTestUtils.setField(recoveryService, "exchangeName", "ticketero-exchange");
+
+            Ticket ticketEnProgreso = ticketInProgress().build();
+            Advisor advisorMuerto = advisorBusy().build();
+
+            when(advisorRepository.findDeadWorkers(any(LocalDateTime.class)))
+                .thenReturn(List.of(advisorMuerto));
+            when(ticketRepository.findCurrentTicketForAdvisor(any()))
+                .thenReturn(Optional.of(ticketEnProgreso));
+            doThrow(new RuntimeException("Error RabbitMQ"))
+                .when(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+
+            // When
+            recoveryService.detectarYRecuperarWorkersMuertos();
+
+            // Then - Debe continuar con el recovery a pesar del error
+            assertThat(advisorMuerto.getStatus()).isEqualTo(AdvisorStatus.AVAILABLE);
+            verify(advisorRepository).save(advisorMuerto);
+            verify(recoveryEventRepository).save(any(RecoveryEvent.class));
+        }
+
+        @Test
+        @DisplayName("error en recovery individual → debe continuar con otros workers")
+        void detectar_errorEnRecoveryIndividual_debeContinuar() {
+            // Given
+            ReflectionTestUtils.setField(recoveryService, "heartbeatTimeoutSeconds", 60);
+
+            Advisor advisor1 = advisorBusy().id(1L).build();
+            Advisor advisor2 = advisorBusy().id(2L).build();
+
+            when(advisorRepository.findDeadWorkers(any(LocalDateTime.class)))
+                .thenReturn(List.of(advisor1, advisor2));
+            when(ticketRepository.findCurrentTicketForAdvisor(1L))
+                .thenThrow(new RuntimeException("Error BD"));
+            when(ticketRepository.findCurrentTicketForAdvisor(2L))
+                .thenReturn(Optional.empty());
+
+            // When
+            recoveryService.detectarYRecuperarWorkersMuertos();
+
+            // Then - Debe procesar el segundo advisor a pesar del error en el primero
+            assertThat(advisor2.getStatus()).isEqualTo(AdvisorStatus.AVAILABLE);
+            verify(advisorRepository).save(advisor2);
+        }
+
+        @Test
+        @DisplayName("debe manejar diferentes tipos de cola para routing key")
+        void detectar_debeManejarDiferentesTiposCola() {
+            // Given
+            ReflectionTestUtils.setField(recoveryService, "heartbeatTimeoutSeconds", 60);
+            ReflectionTestUtils.setField(recoveryService, "exchangeName", "ticketero-exchange");
+
+            // Ticket de tipo PERSONAL_BANKER
+            Ticket ticketPersonal = ticketInProgress().queueType(com.example.ticketero.model.enums.QueueType.PERSONAL_BANKER).build();
+            Advisor advisorMuerto = advisorBusy().build();
+
+            when(advisorRepository.findDeadWorkers(any(LocalDateTime.class)))
+                .thenReturn(List.of(advisorMuerto));
+            when(ticketRepository.findCurrentTicketForAdvisor(any()))
+                .thenReturn(Optional.of(ticketPersonal));
+
+            // When
+            recoveryService.detectarYRecuperarWorkersMuertos();
+
+            // Then
+            verify(rabbitTemplate).convertAndSend(
+                eq("ticketero-exchange"),
+                eq("personal-queue"), // Routing key para PERSONAL_BANKER
+                any(Object.class)
+            );
+        }
+
+        @Test
+        @DisplayName("debe usar default-queue para tipo de cola desconocido")
+        void detectar_debeUsarDefaultQueue() {
+            // Given
+            ReflectionTestUtils.setField(recoveryService, "heartbeatTimeoutSeconds", 60);
+            ReflectionTestUtils.setField(recoveryService, "exchangeName", "ticketero-exchange");
+
+            // Ticket de tipo GERENCIA para probar el default case
+            Ticket ticketGerencia = ticketInProgress().queueType(com.example.ticketero.model.enums.QueueType.GERENCIA).build();
+            
+            Advisor advisorMuerto = advisorBusy().build();
+
+            when(advisorRepository.findDeadWorkers(any(LocalDateTime.class)))
+                .thenReturn(List.of(advisorMuerto));
+            when(ticketRepository.findCurrentTicketForAdvisor(any()))
+                .thenReturn(Optional.of(ticketGerencia));
+
+            // When
+            recoveryService.detectarYRecuperarWorkersMuertos();
+
+            // Then
+            verify(rabbitTemplate).convertAndSend(
+                eq("ticketero-exchange"),
+                eq("gerencia-queue"),
+                any(Object.class)
+            );
+        }
+    }
 }

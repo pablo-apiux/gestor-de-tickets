@@ -194,4 +194,89 @@ class TelegramServiceTest {
             assertThat(resultado).contains("C001");
         }
     }
+
+    // ============================================================
+    // CASOS EDGE ADICIONALES PARA COBERTURA COMPLETA
+    // ============================================================
+    
+    @Nested
+    @DisplayName("Casos Edge para Cobertura Completa")
+    class CasosEdge {
+
+        @Test
+        @DisplayName("enviarMensaje con respuesta exitosa pero sin message_id → debe retornar unknown_message_id")
+        void enviarMensaje_respuestaExitosaSinMessageId_debeRetornarUnknown() {
+            // Given
+            ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
+            ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            
+            Map<String, Object> responseBody = Map.of(
+                "ok", true,
+                "result", Map.of("other_field", "value") // Sin message_id
+            );
+            ResponseEntity<Map> response = new ResponseEntity<>(responseBody, HttpStatus.OK);
+            
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(response);
+
+            // When
+            String resultado = telegramService.enviarMensaje("+56912345678", "Test message");
+
+            // Then
+            assertThat(resultado).isEqualTo("unknown_message_id");
+        }
+
+        @Test
+        @DisplayName("enviarMensaje con respuesta exitosa pero result no es Map → debe lanzar excepción")
+        void enviarMensaje_resultNoEsMap_debeLanzarExcepcion() {
+            // Given
+            ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
+            ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            
+            Map<String, Object> responseBody = Map.of(
+                "ok", true,
+                "result", "not_a_map" // result no es Map
+            );
+            ResponseEntity<Map> response = new ResponseEntity<>(responseBody, HttpStatus.OK);
+            
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(response);
+
+            // When + Then
+            assertThatThrownBy(() -> telegramService.enviarMensaje("+56912345678", "Test"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error enviando mensaje a Telegram");
+        }
+
+        @Test
+        @DisplayName("enviarMensaje con token null → debe simular envío")
+        void enviarMensaje_conTokenNull_debeSimularEnvio() {
+            // Given
+            ReflectionTestUtils.setField(telegramService, "botToken", null);
+
+            // When
+            String resultado = telegramService.enviarMensaje("+56912345678", "Test message");
+
+            // Then
+            assertThat(resultado).startsWith("simulated_message_id_");
+            verify(restTemplate, never()).postForEntity(anyString(), any(), any());
+        }
+
+        @Test
+        @DisplayName("enviarMensaje con respuesta sin body → debe lanzar excepción")
+        void enviarMensaje_respuestaSinBody_debeLanzarExcepcion() {
+            // Given
+            ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
+            ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            
+            ResponseEntity<Map> response = new ResponseEntity<>(null, HttpStatus.OK); // Sin body
+            when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(response);
+
+            // When + Then
+            assertThatThrownBy(() -> telegramService.enviarMensaje("+56912345678", "Test"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Error enviando mensaje a Telegram");
+        }
+    }
 }

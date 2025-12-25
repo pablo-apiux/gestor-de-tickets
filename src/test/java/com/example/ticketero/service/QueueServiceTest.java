@@ -225,4 +225,65 @@ class QueueServiceTest {
             assertThat(resultado).hasSize(3);
         }
     }
+
+    // ============================================================
+    // CASOS EDGE ADICIONALES PARA COBERTURA COMPLETA
+    // ============================================================
+    
+    @Nested
+    @DisplayName("Casos Edge para Cobertura Completa")
+    class CasosEdge {
+
+        @Test
+        @DisplayName("crearEstadoCola con tickets en espera mayor a MAX_TICKETS_DISPLAY → debe limitar lista")
+        void crearEstadoCola_conMuchosTickets_debeLimitarLista() {
+            // Given
+            when(ticketRepository.countByQueueTypeAndStatus(QueueType.CAJA, TicketStatus.EN_ESPERA))
+                .thenReturn(15L); // Más de MAX_TICKETS_DISPLAY (10)
+            when(ticketRepository.countByQueueTypeAndStatus(QueueType.CAJA, TicketStatus.ATENDIENDO))
+                .thenReturn(2L);
+            
+            // Crear 15 tickets pero solo se deben mostrar 10
+            List<Ticket> muchos_tickets = List.of(
+                ticketWaiting().id(1L).numero("C001").build(),
+                ticketWaiting().id(2L).numero("C002").build(),
+                ticketWaiting().id(3L).numero("C003").build(),
+                ticketWaiting().id(4L).numero("C004").build(),
+                ticketWaiting().id(5L).numero("C005").build(),
+                ticketWaiting().id(6L).numero("C006").build(),
+                ticketWaiting().id(7L).numero("C007").build(),
+                ticketWaiting().id(8L).numero("C008").build(),
+                ticketWaiting().id(9L).numero("C009").build(),
+                ticketWaiting().id(10L).numero("C010").build()
+            );
+            when(ticketRepository.findNextTicketsForQueue(eq(QueueType.CAJA), any()))
+                .thenReturn(muchos_tickets);
+
+            // When
+            QueueStatusResponse resultado = queueService.obtenerEstadoCola(QueueType.CAJA);
+
+            // Then
+            assertThat(resultado.waitingList()).hasSize(10); // Limitado a MAX_TICKETS_DISPLAY
+            assertThat(resultado.totalTickets()).isEqualTo(17); // 15 + 2
+            assertThat(resultado.estimatedWaitTime()).isEqualTo(75); // 15 * 5 min
+        }
+
+        @Test
+        @DisplayName("obtenerProximosTickets con límite mayor que tickets disponibles → debe retornar todos")
+        void obtenerProximosTickets_limiteExcedeTamaño_debeRetornarTodos() {
+            // Given
+            List<Ticket> pocos_tickets = List.of(
+                ticketWaiting().id(1L).build(),
+                ticketWaiting().id(2L).build()
+            );
+            when(ticketRepository.findNextTicketsForQueue(eq(QueueType.CAJA), any()))
+                .thenReturn(pocos_tickets);
+
+            // When
+            List<Ticket> resultado = queueService.obtenerProximosTickets(QueueType.CAJA, 10);
+
+            // Then
+            assertThat(resultado).hasSize(2); // Solo los disponibles
+        }
+    }
 }

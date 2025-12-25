@@ -396,4 +396,132 @@ class TicketServiceTest {
             verify(ticketRepository).findByNumero("C001");
         }
     }
+
+    // ============================================================
+    // CASOS EDGE ADICIONALES PARA COBERTURA COMPLETA
+    // ============================================================
+    
+    @Nested
+    @DisplayName("Casos Edge para Cobertura Completa")
+    class CasosEdge {
+
+        @Test
+        @DisplayName("crearTicket con error en notificación → debe crear ticket sin fallar")
+        void crearTicket_conErrorEnNotificacion_debeCrearTicket() {
+            // Given
+            TicketCreateRequest request = validTicketRequest();
+            Ticket ticketGuardado = ticketWaiting().build();
+
+            when(ticketRepository.findByNationalIdAndStatusIn(anyString(), any()))
+                .thenReturn(Optional.empty());
+            when(ticketRepository.countByQueueTypeAndStatus(any(), any())).thenReturn(0L);
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(ticketGuardado);
+            when(telegramService.obtenerTextoMensaje(anyString(), anyString(), any(), any(), any(), any()))
+                .thenReturn("Mensaje");
+            when(telegramService.enviarMensaje(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Error Telegram"));
+
+            // When
+            TicketResponse response = ticketService.crearTicket(request);
+
+            // Then
+            assertThat(response).isNotNull();
+            verify(ticketRepository).save(any(Ticket.class));
+            // No debe guardar mensaje si falla el envío
+            verify(mensajeRepository, never()).save(any(Mensaje.class));
+        }
+
+        @Test
+        @DisplayName("llamarTicket sin teléfono → debe asignar sin notificar")
+        void llamarTicket_sinTelefono_debeAsignarSinNotificar() {
+            // Given
+            Ticket ticket = ticketWaiting().telefono(null).build();
+            Advisor advisor = advisorAvailable().build();
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(advisorRepository.findById(1L)).thenReturn(Optional.of(advisor));
+            when(ticketRepository.findByQueueTypeAndStatusInOrderByCreatedAtAsc(any(), any()))
+                .thenReturn(List.of());
+
+            // When
+            ticketService.llamarTicket(1L, 1L);
+
+            // Then
+            assertThat(ticket.getStatus()).isEqualTo(TicketStatus.ATENDIENDO);
+            verify(telegramService, never()).enviarMensaje(any(), any());
+        }
+
+        @Test
+        @DisplayName("llamarTicket con error en notificación → debe asignar sin fallar")
+        void llamarTicket_conErrorEnNotificacion_debeAsignar() {
+            // Given
+            Ticket ticket = ticketWaiting().build();
+            Advisor advisor = advisorAvailable().build();
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(advisorRepository.findById(1L)).thenReturn(Optional.of(advisor));
+            when(ticketRepository.findByQueueTypeAndStatusInOrderByCreatedAtAsc(any(), any()))
+                .thenReturn(List.of());
+            when(telegramService.obtenerTextoMensaje(anyString(), anyString(), any(), any(), anyString(), any()))
+                .thenReturn("Mensaje");
+            when(telegramService.enviarMensaje(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Error Telegram"));
+
+            // When
+            ticketService.llamarTicket(1L, 1L);
+
+            // Then
+            assertThat(ticket.getStatus()).isEqualTo(TicketStatus.ATENDIENDO);
+            verify(ticketRepository).save(ticket);
+        }
+
+        @Test
+        @DisplayName("llamarTicket debe actualizar posiciones de tickets restantes")
+        void llamarTicket_debeActualizarPosicionesTicketsRestantes() {
+            // Given
+            Ticket ticketLlamado = ticketWaiting().positionInQueue(1).build();
+            Ticket ticket2 = ticketWaiting().positionInQueue(2).build();
+            Ticket ticket3 = ticketWaiting().positionInQueue(3).build();
+            Advisor advisor = advisorAvailable().build();
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticketLlamado));
+            when(advisorRepository.findById(1L)).thenReturn(Optional.of(advisor));
+            when(ticketRepository.findByQueueTypeAndStatusInOrderByCreatedAtAsc(any(), any()))
+                .thenReturn(List.of(ticket2, ticket3));
+
+            // When
+            ticketService.llamarTicket(1L, 1L);
+
+            // Then
+            assertThat(ticket2.getPositionInQueue()).isEqualTo(1); // Bajó de 2 a 1
+            assertThat(ticket3.getPositionInQueue()).isEqualTo(2); // Bajó de 3 a 2
+            verify(ticketRepository, times(1)).save(any(Ticket.class)); // Solo ticketLlamado
+        }
+
+        @Test
+        @DisplayName("llamarTicket con advisor inexistente → debe lanzar excepción")
+        void llamarTicket_conAdvisorInexistente_debeLanzarExcepcion() {
+            // Given
+            Ticket ticket = ticketWaiting().build();
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(advisorRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // When + Then
+            assertThatThrownBy(() -> ticketService.llamarTicket(1L, 999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Asesor no encontrado con ID: 999");
+        }
+
+        @Test
+        @DisplayName("llamarTicket con ticket inexistente → debe lanzar excepción")
+        void llamarTicket_conTicketInexistente_debeLanzarExcepcion() {
+            // Given
+            when(ticketRepository.findById(999L)).thenReturn(Optional.empty());
+
+            // When + Then
+            assertThatThrownBy(() -> ticketService.llamarTicket(999L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ticket no encontrado con ID: 999");
+        }
+    }
 }

@@ -217,6 +217,17 @@ class AdvisorControllerTest {
             verify(advisorService).cambiarEstadoAsesor(1L, AdvisorStatus.BUSY);
             verify(advisorService).cambiarEstadoAsesor(1L, AdvisorStatus.OFFLINE);
         }
+
+        @Test
+        @DisplayName("con estado inválido → debe retornar 400")
+        void cambiarEstadoAsesor_conEstadoInvalido_debeRetornar400() throws Exception {
+            // When & Then
+            mockMvc.perform(put("/api/advisors/1/estado")
+                    .param("estado", "ESTADO_INEXISTENTE"))
+                .andExpect(status().isBadRequest());
+
+            verify(advisorService, never()).cambiarEstadoAsesor(anyLong(), any());
+        }
     }
 
     private Advisor createAdvisor(Long id, String name, AdvisorStatus status) {
