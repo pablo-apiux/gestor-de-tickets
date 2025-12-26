@@ -199,6 +199,13 @@
                     </environmentVariables>
                 </configuration>
             </plugin>
+            
+            <!-- Plugin para ejecutar aplicaciones Java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+            </plugin>
         </plugins>
     </build>
 </project>

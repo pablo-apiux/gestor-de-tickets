@@ -25,37 +25,51 @@ public class TelegramService {
     @Value("${telegram.api-url}")
     private String apiUrl;
 
+    @Value("${telegram.chat-id}")
+    private String chatId;
+
     @SuppressWarnings("unchecked")
-    public String enviarMensaje(String chatId, String texto) {
+    public String enviarMensaje(String telefono, String texto) {
+        log.info("Iniciando envío de mensaje Telegram. Teléfono: {}, ChatId: {}", telefono, chatId);
+        
         if (botToken == null || botToken.isEmpty()) {
             log.warn("Token de Telegram no configurado, simulando envío de mensaje");
             return "simulated_message_id_" + System.currentTimeMillis();
         }
         
         String url = apiUrl + botToken + "/sendMessage";
+        log.debug("URL Telegram: {}", url);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         
+        // Usar el chat_id configurado, no el teléfono
         Map<String, Object> body = Map.of(
             "chat_id", chatId,
-            "text", texto,
+            "text", "📱 Tel: " + (telefono != null ? telefono : "N/A") + "\n\n" + texto,
             "parse_mode", "HTML"
         );
+        
+        log.info("Enviando mensaje a chat_id: {} con texto: {}", chatId, texto);
         
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
         
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
             
+            log.info("Respuesta Telegram - Status: {}, Body: {}", response.getStatusCode(), response.getBody());
+            
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Object resultObj = response.getBody().get("result");
                 if (resultObj instanceof Map<?, ?> result) {
                     Object messageIdObj = result.get("message_id");
-                    return messageIdObj != null ? messageIdObj.toString() : "unknown_message_id";
+                    String messageId = messageIdObj != null ? messageIdObj.toString() : "unknown_message_id";
+                    log.info("Mensaje enviado exitosamente. MessageId: {}", messageId);
+                    return messageId;
                 }
             }
             
+            log.error("Error en respuesta de Telegram: {}", response.getBody());
             throw new RuntimeException("Error enviando mensaje a Telegram");
             
         } catch (Exception e) {

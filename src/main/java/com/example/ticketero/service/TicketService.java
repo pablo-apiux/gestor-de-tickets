@@ -172,6 +172,13 @@ public class TicketService {
     
     private void enviarNotificacionCreacion(Ticket ticket, Integer posicion) {
         try {
+            log.info("Iniciando envío de notificación para ticket: {}", ticket.getNumero());
+            
+            if (ticket.getTelefono() == null || ticket.getTelefono().isEmpty()) {
+                log.warn("Ticket {} no tiene teléfono configurado", ticket.getNumero());
+                return;
+            }
+            
             String texto = telegramService.obtenerTextoMensaje(
                 "totem_ticket_creado",
                 ticket.getNumero(),
@@ -181,7 +188,11 @@ public class TicketService {
                 null
             );
             
+            log.info("Enviando mensaje Telegram para ticket {}: {}", ticket.getNumero(), texto);
+            
             String messageId = telegramService.enviarMensaje(ticket.getTelefono(), texto);
+            
+            log.info("Mensaje enviado exitosamente. MessageId: {}", messageId);
             
             Mensaje mensaje = Mensaje.builder()
                 .ticket(ticket)
@@ -190,8 +201,10 @@ public class TicketService {
                 .build();
             mensajeRepository.save(mensaje);
             
+            log.info("Mensaje guardado en BD para ticket {}", ticket.getNumero());
+            
         } catch (Exception e) {
-            log.error("Error enviando notificación para ticket {}: {}", ticket.getNumero(), e.getMessage());
+            log.error("Error enviando notificación para ticket {}: {}", ticket.getNumero(), e.getMessage(), e);
         }
     }
     

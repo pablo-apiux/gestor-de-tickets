@@ -18,6 +18,23 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: ticketero-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: dev
+      RABBITMQ_DEFAULT_PASS: dev123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
@@ -29,13 +46,20 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/ticketero
       DATABASE_USERNAME: dev
       DATABASE_PASSWORD: dev123
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: dev
+      RABBITMQ_PASSWORD: dev123
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       SPRING_PROFILES_ACTIVE: dev
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
+  rabbitmq_data:
     driver: local
