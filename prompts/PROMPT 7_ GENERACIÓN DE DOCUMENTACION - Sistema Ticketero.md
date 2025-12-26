@@ -100,11 +100,11 @@ Después de CADA paso:
 
 ---
 
-## **PASO 5: PROMPT DE DESARROLLO**
+## **PASO 5: LINEAMIENTOS DE DESARROLLO**
 
-**Objetivo:** Crear un prompt reutilizable para futuras extensiones del sistema.
+**Objetivo:** Crear un documento guía para futuras extensiones del sistema.
 
-**Tarea:** Genera un prompt que permita a otros desarrolladores extender o modificar el sistema siguiendo los patrones establecidos.
+**Tarea:** Genera un documento que permita a otros desarrolladores extender o modificar el sistema siguiendo los patrones establecidos.
 
 **Requisitos específicos:**
 - Patrones de arquitectura utilizados
@@ -114,7 +114,7 @@ Después de CADA paso:
 - Guías para agregar nuevas funcionalidades
 - Mejores prácticas específicas del proyecto
 
-**Resultado:** Nuevo archivo `docs/PROMPT-DESARROLLO.md`
+**Resultado:** Nuevo archivo `docs/LINEAMIENTOS-DESARROLLO.md`
 
 ---
 
