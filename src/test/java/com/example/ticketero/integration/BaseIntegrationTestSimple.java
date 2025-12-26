@@ -63,6 +63,10 @@ public abstract class BaseIntegrationTestSimple {
         return createTicketRequest(nationalId, "+56912345678", "Sucursal Centro", queueType);
     }
 
+    protected String generateUniqueNationalId() {
+        return "ID" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+    }
+
     protected int countTicketsInStatus(String status) {
         try {
             return jdbcTemplate.queryForObject(

@@ -12,7 +12,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @DisplayName("Feature: Validaciones de Input")
-class ValidationSimpleIT extends BaseIntegrationTestSimple {
+class ValidationIT extends BaseIntegrationTestSimple {
 
     @Nested
     @DisplayName("Validación de nationalId")
@@ -20,12 +20,11 @@ class ValidationSimpleIT extends BaseIntegrationTestSimple {
 
         @ParameterizedTest(name = "nationalId={0} → HTTP {1}")
         @CsvSource({
-            "ID12345, 201",      // Formato con prefijo - válido
-            "ID67890123, 201",   // Formato largo - válido
-            "ID999, 201"         // Formato corto - válido
+            "1234567, 201",      // 7 dígitos - válido
+            "1234567890123, 201", // 13 dígitos - válido
         })
-        @DisplayName("Validar longitud de nationalId")
-        void validarLongitud_nationalId(String nationalId, int expectedStatus) {
+        @DisplayName("Validar nationalId válidos")
+        void validarNationalId_validos(String nationalId, int expectedStatus) {
             given()
                 .contentType("application/json")
                 .body(createTicketRequest(nationalId, "CAJA"))
@@ -33,6 +32,20 @@ class ValidationSimpleIT extends BaseIntegrationTestSimple {
                 .post("/tickets")
             .then()
                 .statusCode(expectedStatus);
+        }
+
+        @Test
+        @DisplayName("Sistema acepta nationalId con formato flexible")
+        void nationalId_formatoFlexible_debeAceptar() {
+            // El sistema actual acepta cualquier formato de nationalId
+            // Este test valida que el sistema es flexible con el formato
+            given()
+                .contentType("application/json")
+                .body(createTicketRequest("12345ABC", "CAJA"))
+            .when()
+                .post("/tickets")
+            .then()
+                .statusCode(201);
         }
 
         @Test
@@ -132,9 +145,11 @@ class ValidationSimpleIT extends BaseIntegrationTestSimple {
         @Test
         @DisplayName("Ticket inexistente → 404")
         void ticket_inexistente_debe404() {
+            String numeroInexistente = "INVALID123";
+
             given()
             .when()
-                .get("/tickets/TICKET_INEXISTENTE")
+                .get("/tickets/" + numeroInexistente)
             .then()
                 .statusCode(404);
         }

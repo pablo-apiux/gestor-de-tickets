@@ -22,7 +22,7 @@ class TicketCreationSimpleIT extends BaseIntegrationTestSimple {
             // When
             Response response = given()
                 .contentType("application/json")
-                .body(createTicketRequest("12345678", "CAJA"))
+                .body(createTicketRequest(generateUniqueNationalId(), "CAJA"))
             .when()
                 .post("/tickets")
             .then()
@@ -43,13 +43,13 @@ class TicketCreationSimpleIT extends BaseIntegrationTestSimple {
         @DisplayName("Crear ticket sin teléfono → debe funcionar")
         void crearTicket_sinTelefono_debeCrear() {
             // Given
-            String requestSinTelefono = """
+            String requestSinTelefono = String.format("""
                 {
-                    "nationalId": "87654321",
+                    "nationalId": "%s",
                     "branchOffice": "Sucursal Norte",
                     "queueType": "PERSONAL_BANKER"
                 }
-                """;
+                """, generateUniqueNationalId());
 
             // When + Then
             given()
@@ -72,7 +72,7 @@ class TicketCreationSimpleIT extends BaseIntegrationTestSimple {
             for (int i = 0; i < colas.length; i++) {
                 Response response = given()
                     .contentType("application/json")
-                    .body(createTicketRequest("2000000" + i, colas[i]))
+                    .body(createTicketRequest(generateUniqueNationalId(), colas[i]))
                 .when()
                     .post("/tickets")
                 .then()
@@ -95,7 +95,7 @@ class TicketCreationSimpleIT extends BaseIntegrationTestSimple {
             // When
             Response response = given()
                 .contentType("application/json")
-                .body(createTicketRequest("11111111", "PERSONAL_BANKER"))
+                .body(createTicketRequest(generateUniqueNationalId(), "PERSONAL_BANKER"))
             .when()
                 .post("/tickets")
             .then()
@@ -113,7 +113,7 @@ class TicketCreationSimpleIT extends BaseIntegrationTestSimple {
             // Given - Crear ticket
             Response createResponse = given()
                 .contentType("application/json")
-                .body(createTicketRequest("22222222", "CAJA"))
+                .body(createTicketRequest(generateUniqueNationalId(), "CAJA"))
             .when()
                 .post("/tickets")
             .then()
