@@ -45,6 +45,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             Map<String, Object> responseBody = Map.of(
                 "ok", true,
@@ -87,6 +88,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
                 .thenThrow(new RuntimeException("Network error"));
@@ -103,6 +105,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             ResponseEntity<Map> response = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))
@@ -209,6 +212,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             Map<String, Object> responseBody = Map.of(
                 "ok", true,
@@ -232,6 +236,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             Map<String, Object> responseBody = Map.of(
                 "ok", true,
@@ -268,6 +273,7 @@ class TelegramServiceTest {
             // Given
             ReflectionTestUtils.setField(telegramService, "botToken", "123456:ABC-DEF");
             ReflectionTestUtils.setField(telegramService, "apiUrl", "https://api.telegram.org/bot");
+            ReflectionTestUtils.setField(telegramService, "chatId", "12345");
             
             ResponseEntity<Map> response = new ResponseEntity<>(null, HttpStatus.OK); // Sin body
             when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(Map.class)))

@@ -44,11 +44,10 @@ public class TelegramService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         
         // Usar el chat_id configurado, no el teléfono
-        Map<String, Object> body = Map.of(
-            "chat_id", chatId,
-            "text", "📱 Tel: " + (telefono != null ? telefono : "N/A") + "\n\n" + texto,
-            "parse_mode", "HTML"
-        );
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("chat_id", chatId);
+        body.put("text", "📱 Tel: " + (telefono != null ? telefono : "N/A") + "\n\n" + texto);
+        body.put("parse_mode", "HTML");
         
         log.info("Enviando mensaje a chat_id: {} con texto: {}", chatId, texto);
         
