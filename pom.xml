@@ -104,6 +104,44 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- TestContainers for E2E Testing -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.19.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>1.19.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <version>1.19.3</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- RestAssured for API Testing -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.4.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Awaitility for async testing -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -147,6 +185,18 @@
                         <exclude>**/config/**</exclude>
                         <exclude>**/TicketeroApplication.class</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            
+            <!-- Plugin para cargar variables del archivo .env -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <environmentVariables>
+                        <TELEGRAM_BOT_TOKEN>8581359386:AAGnLgS6OnTZheDaktIX10qrR-W4G01cj4Y</TELEGRAM_BOT_TOKEN>
+                        <TELEGRAM_CHAT_ID>55334007</TELEGRAM_CHAT_ID>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

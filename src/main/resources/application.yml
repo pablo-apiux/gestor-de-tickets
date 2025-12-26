@@ -28,6 +28,13 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
 
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
 server:
   port: 8090
   compression:
@@ -38,8 +45,9 @@ server:
 
 # Telegram Configuration
 telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  bot-token: ${TELEGRAM_BOT_TOKEN:test-token}
   api-url: https://api.telegram.org/bot
+  chat-id: ${TELEGRAM_CHAT_ID:123456789}
 
 # Application Configuration
 app:
